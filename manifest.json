@@ -1,0 +1,10 @@
+{
+  "name": "ワンワールド月報告",
+  "short_name": "月報告",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f4f6f4",
+  "theme_color": "#2d6a4f",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}

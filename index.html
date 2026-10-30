@@ -1,0 +1,775 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2d6a4f">
+<meta name="robots" content="noindex">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<title>ワンワールド月報告</title>
+<style>
+  :root {
+    --bg: #f4f6f4; --card: #fff; --ink: #1d2621; --sub: #5d6b63; --line: #dde3df;
+    --main: #2d6a4f; --soft: #e6f0ea; --warn: #b5651d; --bad: #a8323e; --sat: #2f6fb0; --sun: #c0392b;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #111614; --card: #1a211d; --ink: #e6ede9; --sub: #9db0a5; --line: #2c3731;
+      --main: #6fc19a; --soft: #20302a; --warn: #e09a55; --bad: #e2707b; --sat: #7fb0e6; --sun: #ec8a7e; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Sans", "Noto Sans JP", "Yu Gothic", sans-serif; font-size: 17px; line-height: 1.5; }
+  header { background: var(--main); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; }
+  @media (prefers-color-scheme: dark) { header { color: #111614; } }
+  header h1 { margin: 0; font-size: 19px; }
+  header button { background: transparent; border: 1px solid currentColor; color: inherit; border-radius: 8px; padding: 4px 10px; font-size: 14px; }
+  main { max-width: 560px; margin: 0 auto; padding: 14px 16px 90px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+  .label { font-size: 13px; color: var(--sub); }
+  .title { font-size: 19px; font-weight: 700; margin: 0 0 6px; }
+  .num { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--sub); font-size: 14px; }
+  .warn { color: var(--warn); }
+  .bad { color: var(--bad); }
+  .month-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .month-nav > div { text-align: center; flex: 1; }
+  .month-nav b { font-size: 20px; display: block; }
+  .month-nav button { width: 46px; padding: 8px 0; }
+  .sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; text-align: center; margin-top: 10px; }
+  .sum > div { background: var(--soft); border-radius: 10px; padding: 6px 2px; }
+  .sum b { display: block; font-size: 19px; }
+  .bar { height: 6px; background: var(--line); border-radius: 3px; margin-top: 4px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--main); }
+  .banner { background: var(--soft); border: 1px solid var(--main); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: 15px; }
+  .banner button { margin-top: 6px; }
+  .btn { border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 12px; padding: 11px 8px; font-size: 16px; font-weight: 600; }
+  .btn.primary { background: var(--main); color: #fff; border-color: var(--main); }
+  @media (prefers-color-scheme: dark) { .btn.primary { color: #111614; } }
+  .btn.danger { color: var(--bad); border-color: var(--bad); }
+  .btn.small { padding: 6px 10px; font-size: 14px; border-radius: 9px; }
+  .btn.wide { width: 100%; }
+  .btn:disabled { opacity: .5; }
+  .big2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  .big2 .btn { padding: 18px 6px; font-size: 19px; }
+  nav.tabs { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+    display: grid; grid-template-columns: repeat(4, 1fr); padding-bottom: env(safe-area-inset-bottom); z-index: 5; }
+  nav.tabs button { background: none; border: 0; color: var(--sub); padding: 10px 0 12px; font-size: 14px; font-weight: 600; }
+  nav.tabs button span { display: block; font-size: 20px; line-height: 1.2; }
+  nav.tabs button.on { color: var(--main); }
+  .list { list-style: none; margin: 0; padding: 0; }
+  .list li { padding: 9px 0; border-top: 1px solid var(--line); font-size: 15px; display: flex; gap: 10px; align-items: baseline; cursor: pointer; }
+  .list li:first-child { border-top: 0; }
+  .list li .d { width: 76px; flex: none; font-variant-numeric: tabular-nums; }
+  .list li .m { flex: 1; min-width: 0; }
+  .list li .r { flex: none; text-align: right; font-variant-numeric: tabular-nums; }
+  .list li.empty .m { color: var(--sub); }
+  .list li.today { background: var(--soft); margin: 0 -8px; padding-left: 8px; padding-right: 8px; border-radius: 8px; }
+  .d .w6 { color: var(--sat); } .d .w0 { color: var(--sun); }
+  .chip { display: inline-block; font-size: 12px; border-radius: 6px; padding: 0 6px; margin-right: 4px; background: var(--main); color: #fff; }
+  @media (prefers-color-scheme: dark) { .chip { color: #111614; } }
+  .chip.k-欠勤, .chip.k-有給, .chip.k-半休, .chip.k-休日 { background: var(--warn); }
+  .route { font-size: 13px; color: var(--sub); overflow-wrap: anywhere; }
+  form label, .f label { display: block; font-size: 13px; color: var(--sub); margin-top: 10px; }
+  input, select, textarea { width: 100%; font-size: 17px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); color: var(--ink); font-family: inherit; }
+  .seg { display: flex; flex-wrap: wrap; gap: 6px; }
+  .seg label { flex: 1; margin: 0; min-width: 44px; }
+  .seg input { display: none; }
+  .seg span { display: block; text-align: center; padding: 8px 2px; border: 1px solid var(--line); border-radius: 10px; font-size: 15px; color: var(--ink); }
+  .seg input:checked + span { background: var(--main); border-color: var(--main); color: #fff; }
+  @media (prefers-color-scheme: dark) { .seg input:checked + span { color: #111614; } }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .three { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .actions { display: flex; gap: 8px; margin-top: 14px; }
+  .actions .btn { flex: 1; }
+  .leg { border: 1px solid var(--line); border-radius: 12px; padding: 4px 10px 10px; margin-top: 10px; position: relative; }
+  .leg .x { position: absolute; right: 6px; top: 6px; }
+  .leg-no { font-size: 13px; color: var(--sub); margin-top: 6px; }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .total-line { display: flex; justify-content: space-between; margin-top: 12px; font-weight: 700; }
+  .check { list-style: none; margin: 0; padding: 0; }
+  .check li { padding: 8px 0; border-top: 1px solid var(--line); display: flex; gap: 10px; font-size: 15px; }
+  .check li:first-child { border-top: 0; }
+  .check li > b { flex: none; width: 22px; text-align: center; }
+  .check li > div { flex: 1; }
+  .sheet { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 10; display: flex; align-items: flex-end; justify-content: center; }
+  .sheet > .card { width: 100%; max-width: 560px; margin: 0; border-radius: 18px 18px 0 0; max-height: 92vh; overflow-y: auto;
+    padding-bottom: calc(18px + env(safe-area-inset-bottom)); }
+  #toast { position: fixed; left: 16px; right: 16px; bottom: 76px; max-width: 528px; margin: 0 auto; background: var(--ink); color: var(--bg);
+    padding: 12px 14px; border-radius: 12px; display: none; z-index: 20; }
+  #toast.show { display: block; }
+  .pending { color: var(--warn); font-size: 13px; margin-bottom: 10px; }
+  a { color: var(--main); }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ワンワールド月報告</h1>
+  <button id="openSettings" type="button">設定</button>
+</header>
+<main>
+  <div class="pending" id="pending" hidden></div>
+  <div class="banner" id="demo" hidden>お試し中：記録はこのスマホの中だけに残ります。「設定」でスプレッドシートの受付URLを入れると、スプレッドシートに保存され、PDFも作れます。</div>
+  <div class="banner" id="dueBanner" hidden></div>
+
+  <section class="card">
+    <div class="month-nav">
+      <button class="btn" type="button" id="prevMonth" aria-label="前の月度">‹</button>
+      <div><b id="monthTitle"></b><span class="muted" id="monthRange"></span></div>
+      <button class="btn" type="button" id="nextMonth" aria-label="次の月度">›</button>
+    </div>
+    <div class="sum">
+      <div><span class="label">出勤</span><b class="num" id="sDays">0日</b></div>
+      <div><span class="label">実働</span><b class="num" id="sHours">0:00</b><div class="bar"><i id="sBar" style="width:0"></i></div></div>
+      <div><span class="label">立替合計</span><b class="num" id="sMoney">0円</b></div>
+    </div>
+  </section>
+
+  <!-- 出勤 -->
+  <div id="tab-attend">
+    <section class="card" id="todayCard">
+      <div class="label">今日</div>
+      <div class="title" id="todayTitle"></div>
+      <div class="muted" id="todayState"></div>
+      <div class="big2">
+        <button class="btn primary" type="button" id="clockIn">出勤</button>
+        <button class="btn primary" type="button" id="clockOut">退勤</button>
+      </div>
+      <p class="muted" style="margin:8px 0 0">押した時刻（5分単位）で入ります。あとから日付を押して直せます。</p>
+    </section>
+    <section class="card">
+      <div class="label" style="margin-bottom:4px">出勤簿（日付を押して入力・修正）</div>
+      <ul class="list" id="attendList"></ul>
+    </section>
+  </div>
+
+  <!-- 交通費 -->
+  <div id="tab-trip" hidden>
+    <button class="btn primary wide" type="button" id="addTrip" style="margin-bottom:14px">＋ 交通費を入れる</button>
+    <section class="card">
+      <div class="label" style="margin-bottom:4px">交通費精算書（押して修正）</div>
+      <ul class="list" id="tripList"></ul>
+      <div class="total-line"><span>交通費の合計</span><span class="num" id="tripTotal">0円</span></div>
+      <div class="muted" id="tripRows"></div>
+    </section>
+  </div>
+
+  <!-- 立替 -->
+  <div id="tab-exp" hidden>
+    <button class="btn primary wide" type="button" id="addExp" style="margin-bottom:14px">＋ 立替を入れる</button>
+    <section class="card">
+      <div class="label" style="margin-bottom:4px">立替経費精算書（押して修正）</div>
+      <ul class="list" id="expList"></ul>
+      <div class="total-line"><span>立替の合計（交通費を含む）</span><span class="num" id="expTotal">0円</span></div>
+      <div class="muted" id="expRows"></div>
+    </section>
+  </div>
+
+  <!-- 報告 -->
+  <div id="tab-report" hidden>
+    <section class="card">
+      <div class="title">提出前のチェック</div>
+      <ul class="check" id="checkList"></ul>
+    </section>
+    <section class="card f">
+      <div class="title">PDFを作る</div>
+      <label for="rApply">申請日（提出日）</label>
+      <input type="date" id="rApply">
+      <label for="rLabel">交通費の行の「内容・支払事由」</label>
+      <input id="rLabel" autocomplete="off">
+      <label for="rPayee">交通費の行の「支払先」</label>
+      <input id="rPayee" autocomplete="off">
+      <button class="btn primary wide" type="button" id="makePdf" style="margin-top:14px">PDFを作ってフォルダに保存</button>
+      <p class="muted" id="pdfNote" style="margin:8px 0 0">出勤簿・立替経費精算書・交通費精算書の3枚を1つのPDFにして、Googleドライブの「ワンワールド月報告」フォルダに入れます。同じ月度をもう一度作ると上書きします。</p>
+      <div id="pdfResult" style="margin-top:10px"></div>
+    </section>
+    <section class="card">
+      <div class="label">この月度に作ったPDF</div>
+      <ul class="list" id="reportList"></ul>
+      <p class="muted" style="margin:10px 0 0" id="sheetLinkWrap" hidden><a id="sheetLink" target="_blank" rel="noopener">スプレッドシートを開く</a></p>
+    </section>
+  </div>
+</main>
+
+<nav class="tabs">
+  <button type="button" data-tab="attend" class="on"><span>🕘</span>出勤</button>
+  <button type="button" data-tab="trip"><span>🚃</span>交通費</button>
+  <button type="button" data-tab="exp"><span>🧾</span>立替</button>
+  <button type="button" data-tab="report"><span>📄</span>報告</button>
+</nav>
+
+<!-- 出勤の入力 -->
+<div class="sheet" id="attendSheet" hidden>
+  <section class="card">
+    <div class="title" id="aTitle"></div>
+    <form id="aForm">
+      <label>区分</label>
+      <div class="seg" id="aKind">
+        <label><input type="radio" name="kind" value="出勤"><span>出勤</span></label>
+        <label><input type="radio" name="kind" value="半休"><span>半休</span></label>
+        <label><input type="radio" name="kind" value="有給"><span>有給</span></label>
+        <label><input type="radio" name="kind" value="欠勤"><span>欠勤</span></label>
+        <label><input type="radio" name="kind" value="休日"><span>休日</span></label>
+        <label><input type="radio" name="kind" value=""><span>なし</span></label>
+      </div>
+      <div class="three">
+        <div><label for="aIn">出勤時刻</label><input type="time" id="aIn" step="300"></div>
+        <div><label for="aOut">退勤時刻</label><input type="time" id="aOut" step="300"></div>
+        <div><label for="aBreak">休憩</label>
+          <select id="aBreak"><option value="">なし</option><option>0:30</option><option>0:45</option><option>1:00</option><option>1:30</option><option>2:00</option></select></div>
+      </div>
+      <div class="muted" id="aWork" style="margin-top:6px"></div>
+      <label for="aNote">備考</label><input id="aNote" autocomplete="off" list="noteList">
+      <datalist id="noteList"></datalist>
+      <div class="actions">
+        <button class="btn" type="button" data-close>やめる</button>
+        <button class="btn primary" type="submit">保存</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- 交通費の入力 -->
+<div class="sheet" id="tripSheet" hidden>
+  <section class="card">
+    <div class="title" id="tTitle">交通費</div>
+    <div id="tPresetWrap"><div class="label">よく使う経路（押すと区間が入ります）</div><div class="presets" id="tPresets"></div></div>
+    <form id="tForm">
+      <div class="two">
+        <div><label for="tDate">日付</label><input type="date" id="tDate" required></div>
+        <div><label for="tPurpose">目的</label><input id="tPurpose" list="purposeList" autocomplete="off" required></div>
+      </div>
+      <datalist id="purposeList"></datalist>
+      <datalist id="stationList"></datalist>
+      <datalist id="meansList"><option>電車</option><option>バス</option><option>地下鉄</option><option>モノレール</option><option>タクシー</option><option>新幹線</option></datalist>
+      <div id="tLegs"></div>
+      <div class="two" style="margin-top:10px">
+        <button class="btn small" type="button" id="tAddLeg">＋ 区間を足す</button>
+        <button class="btn small" type="button" id="tReturn">帰り（逆順）を足す</button>
+      </div>
+      <div class="total-line"><span>この日の合計</span><span class="num" id="tSum">0円</span></div>
+      <div class="actions">
+        <button class="btn danger" type="button" id="tDelete" hidden>消す</button>
+        <button class="btn" type="button" data-close>やめる</button>
+        <button class="btn primary" type="submit">保存</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- 立替の入力 -->
+<div class="sheet" id="expSheet" hidden>
+  <section class="card">
+    <div class="title" id="eTitle">立替</div>
+    <form id="eForm">
+      <div class="two">
+        <div><label for="eDate">日付</label><input type="date" id="eDate" required></div>
+        <div><label for="eAmount">金額（円）</label><input id="eAmount" inputmode="numeric" required autocomplete="off"></div>
+      </div>
+      <label for="eWhat">内容・支払事由</label><input id="eWhat" list="whatList" autocomplete="off" required>
+      <datalist id="whatList"></datalist>
+      <label for="ePayee">支払先</label><input id="ePayee" list="payeeList" autocomplete="off">
+      <datalist id="payeeList"></datalist>
+      <label>領収書</label>
+      <div class="seg">
+        <label><input type="radio" name="receipt" value="有"><span>有</span></label>
+        <label><input type="radio" name="receipt" value="無"><span>無</span></label>
+      </div>
+      <div class="actions">
+        <button class="btn danger" type="button" id="eDelete" hidden>消す</button>
+        <button class="btn" type="button" data-close>やめる</button>
+        <button class="btn primary" type="submit">保存</button>
+      </div>
+    </form>
+  </section>
+</div>
+
+<!-- 設定 -->
+<div class="sheet" id="settingsSheet" hidden>
+  <section class="card f">
+    <div class="title">設定</div>
+    <label for="sUrl">スプレッドシートの受付URL（Apps Script の …/exec）</label>
+    <input id="sUrl" autocomplete="off" placeholder="https://script.google.com/macros/s/…/exec">
+    <label for="sGoal">1か月の目安の時間（時間）</label>
+    <input id="sGoal" inputmode="numeric">
+    <div class="actions">
+      <button class="btn" type="button" data-close>閉じる</button>
+      <button class="btn primary" type="button" id="sSave">保存</button>
+    </div>
+  </section>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ---- 保存（このスマホの中） ----
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem('owg.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem('owg.' + k, JSON.stringify(v)); } catch (e) {} },
+  };
+  // URLの #url=… で受付URLを一度だけ渡せるようにする（ページ本体には書かない）
+  const hashUrl = new URLSearchParams(location.hash.slice(1)).get('url');
+  if (hashUrl) { store.set('url', hashUrl); history.replaceState(null, '', location.pathname); }
+
+  const settings = {
+    url: store.get('url', ''),
+    goal: store.get('goal', 20),
+    tripLabel: store.get('tripLabel', '出張 交通費（電車）清算'),
+    tripPayee: store.get('tripPayee', 'JR,大阪メトロ,阪神'),
+  };
+  // サーバーの形のまま持つ
+  let server = store.get('server', { attend: [], trips: [], expenses: [], reports: [], sheetUrl: '' });
+  let queue = store.get('queue', []);   // まだ送れていない変更
+  const saveAll = () => { store.set('server', server); store.set('queue', queue); };
+
+  // ---- 日付 ----
+  const pad = n => String(n).padStart(2, '0');
+  const WD = ['日', '月', '火', '水', '木', '金', '土'];
+  const ds = d => `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())}`;   // 2026/11/03
+  const toInput = s => s.replace(/\//g, '-');
+  const fromInput = s => s.replace(/-/g, '/');
+  const parseD = s => { const m = String(s).match(/(\d{4})\D(\d{1,2})\D(\d{1,2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const md = s => { const d = parseD(s); return d ? `${d.getMonth() + 1}/${d.getDate()}` : s; };
+  const mdw = s => { const d = parseD(s); return d ? `${d.getMonth() + 1}/${d.getDate()}<span class="w${d.getDay()}">(${WD[d.getDay()]})</span>` : esc(s); };
+  const yen = n => Number(n || 0).toLocaleString('ja-JP') + '円';
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  const toMin = t => { const m = String(t || '').match(/(\d{1,2}):(\d{2})/); return m ? +m[1] * 60 + +m[2] : null; };
+  const hm = min => `${Math.floor(min / 60)}:${pad(min % 60)}`;
+  function workMin(r) {
+    const a = toMin(r['出勤']), b = toMin(r['退勤']);
+    if (a == null || b == null) return null;
+    return Math.max(0, b - a - (toMin(r['休憩']) || 0));
+  }
+
+  // 月度：前の月の21日〜その月の20日。今日が21日以降なら次の月度
+  function monthOf(d) { const x = new Date(d.getFullYear(), d.getMonth() + (d.getDate() >= 21 ? 1 : 0), 1); return { y: x.getFullYear(), m: x.getMonth() + 1 }; }
+  function periodOf(mo) { return { from: new Date(mo.y, mo.m - 2, 21), to: new Date(mo.y, mo.m - 1, 20) }; }
+  const key = mo => `${mo.y}-${pad(mo.m)}`;
+  let cur = monthOf(new Date());
+  let dueMo = cur;   // 報告日の知らせを出す月度
+  const inCur = s => { const d = parseD(s); if (!d) return false; const p = periodOf(cur); return d >= p.from && d <= p.to; };
+
+  // ---- データ（サーバーの行 → 画面用） ----
+  function attendMap() { const o = {}; server.attend.forEach(r => { o[r['日付']] = r; }); return o; }
+  function tripGroups() {
+    const g = {};
+    server.trips.forEach(r => {
+      const t = g[r['旅ID']] || (g[r['旅ID']] = { id: r['旅ID'], date: r['日付'], purpose: r['目的'], legs: [] });
+      t.legs.push(r);
+    });
+    Object.values(g).forEach(t => t.legs.sort((a, b) => a['順番'] - b['順番']));
+    return Object.values(g).sort((a, b) => parseD(a.date) - parseD(b.date));
+  }
+  const tripSum = t => t.legs.reduce((s, l) => s + (Number(l['金額']) || 0), 0);
+
+  // 変更を手元に反映（送る前にも画面に出す・取り込み後の再適用にも使う）
+  function apply(op) {
+    if (op.action === 'attend') {
+      server.attend = server.attend.filter(r => r['日付'] !== op.row['日付']);
+      const r = op.row;
+      if (r['区分'] || r['出勤'] || r['退勤'] || r['備考']) server.attend.push(r);
+    } else if (op.action === 'trip') {
+      server.trips = server.trips.filter(r => r['旅ID'] !== op.tripId);
+      op.legs.forEach((l, i) => server.trips.push(Object.assign({}, l, { '旅ID': op.tripId, '順番': i + 1 })));
+    } else if (op.action === 'expense') {
+      server.expenses = server.expenses.filter(r => r['ID'] !== op.row['ID']);
+      if (!op.remove) server.expenses.push(op.row);
+    }
+  }
+  function commit(op, msg) {
+    apply(op);
+    if (settings.url) queue.push(op);
+    saveAll(); render(); toast(msg);
+    flush();
+  }
+
+  // ---- 送る・読む ----
+  let flushing = false;
+  async function flush() {
+    if (!settings.url || !queue.length || flushing) { renderPending(); return; }
+    flushing = true;
+    while (queue.length && navigator.onLine) {
+      try {
+        const res = await fetch(settings.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(queue[0]) });
+        const j = await res.json();
+        if (!j.ok) throw new Error(j.error);
+        queue.shift(); saveAll();
+      } catch (e) { break; }
+    }
+    flushing = false;
+    renderPending();
+  }
+  async function pull() {
+    if (!settings.url || !navigator.onLine) return;
+    try {
+      const j = await (await fetch(settings.url)).json();
+      if (!j.ok) return;
+      server = { attend: j.attend, trips: j.trips, expenses: j.expenses, reports: j.reports, sheetUrl: j.sheetUrl };
+      queue.forEach(apply);   // まだ送れていない変更を上に重ねる
+      saveAll(); render();
+    } catch (e) {}
+  }
+  function renderPending() {
+    $('pending').hidden = !queue.length;
+    $('pending').textContent = `まだ送れていない変更が ${queue.length} 件あります（電波が戻ると送ります）`;
+  }
+
+  // ---- 画面 ----
+  let toastTimer;
+  function toast(msg) {
+    if (!msg) return;
+    $('toast').textContent = msg; $('toast').classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => $('toast').classList.remove('show'), 2500);
+  }
+
+  function periodDays() {
+    const p = periodOf(cur), out = [];
+    for (let d = new Date(p.from); d <= p.to; d.setDate(d.getDate() + 1)) out.push(ds(d));
+    return out;
+  }
+
+  function totals() {
+    const att = server.attend.filter(r => inCur(r['日付']));
+    const days = att.filter(r => r['区分'] === '出勤').length;
+    const min = att.reduce((s, r) => s + (workMin(r) || 0), 0);
+    const trips = tripGroups().filter(t => inCur(t.date));
+    const tripTotal = trips.reduce((s, t) => s + tripSum(t), 0);
+    const exps = server.expenses.filter(r => inCur(r['日付'])).sort((a, b) => parseD(a['日付']) - parseD(b['日付']));
+    const expTotal = exps.reduce((s, r) => s + (Number(r['金額']) || 0), 0) + tripTotal;
+    return { att, days, min, trips, tripTotal, exps, expTotal, legs: trips.reduce((s, t) => s + t.legs.length, 0) };
+  }
+
+  function render() {
+    const p = periodOf(cur), t = totals();
+    $('monthTitle').textContent = `${cur.y}年${cur.m}月度`;
+    $('monthRange').textContent = `${p.from.getMonth() + 1}/${p.from.getDate()}(${WD[p.from.getDay()]}) 〜 ${p.to.getMonth() + 1}/${p.to.getDate()}(${WD[p.to.getDay()]})`;
+    $('sDays').textContent = t.days + '日';
+    $('sHours').textContent = hm(t.min);
+    $('sBar').style.width = Math.min(100, t.min / 60 / (Number(settings.goal) || 20) * 100) + '%';
+    $('sMoney').textContent = yen(t.expTotal);
+    $('demo').hidden = !!settings.url;
+
+    // 20日前後の知らせ：今の月度の報告がまだなら
+    const today = new Date();
+    dueMo = monthOf(new Date(today.getFullYear(), today.getMonth(), 20));   // 今月20日が締めの月度
+    const done = server.reports.some(r => String(r['月度']) === key(dueMo));
+    $('dueBanner').hidden = done || today.getDate() < 18 || today.getDate() > 25;
+    $('dueBanner').innerHTML = `<b>${dueMo.m}月度の報告日（${dueMo.m}/20）です。</b><br>入力を確かめて、PDFを作ってください。<br>` +
+      `<button class="btn small primary" type="button" id="goReport">報告を開く</button>`;
+
+    renderAttend(t); renderTrips(t); renderExps(t); renderReport(t); renderPending();
+  }
+
+  function renderAttend(t) {
+    const map = attendMap(), today = ds(new Date());
+    $('todayCard').hidden = !inCur(today);
+    const tr = map[today] || {};
+    $('todayTitle').innerHTML = mdw(today);
+    $('todayState').textContent = tr['出勤'] ? `出勤 ${tr['出勤']}${tr['退勤'] ? '　退勤 ' + tr['退勤'] : '　（退勤はまだ）'}` : 'まだ出勤していません';
+    $('attendList').innerHTML = periodDays().map(d => {
+      const r = map[d];
+      const w = r ? workMin(r) : null;
+      const body = r ? `${r['区分'] ? `<span class="chip k-${esc(r['区分'])}">${esc(r['区分'])}</span>` : ''}` +
+        `${r['出勤'] ? esc(r['出勤']) + '–' + esc(r['退勤'] || '？') : ''}${r['休憩'] ? ` <span class="muted">休${esc(r['休憩'])}</span>` : ''}` +
+        `${r['備考'] ? `<div class="route">${esc(r['備考'])}</div>` : ''}` +
+        `${r['区分'] === '出勤' && !r['退勤'] ? ' <span class="warn">退勤なし</span>' : ''}` : '—';
+      return `<li data-day="${d}" class="${r ? '' : 'empty'} ${d === today ? 'today' : ''}"><span class="d">${mdw(d)}</span><span class="m">${body}</span>` +
+        `<span class="r">${w != null ? hm(w) : ''}</span></li>`;
+    }).join('');
+  }
+
+  function renderTrips(t) {
+    $('tripList').innerHTML = t.trips.length ? t.trips.map(tr =>
+      `<li data-trip="${esc(tr.id)}"><span class="d">${mdw(tr.date)}</span><span class="m">${esc(tr.purpose)}` +
+      `<div class="route">${tr.legs.map(l => esc(l['出発']) + '→' + esc(l['到着'])).join('、')}</div></span><span class="r">${yen(tripSum(tr))}</span></li>`).join('')
+      : '<li class="empty"><span class="m">まだありません</span></li>';
+    $('tripTotal').textContent = yen(t.tripTotal);
+    $('tripRows').innerHTML = `精算書の行：${t.legs} / 15 行` + (t.legs > 15 ? ' <span class="bad">（入りきりません）</span>' : '');
+  }
+
+  function renderExps(t) {
+    const rows = [];
+    if (t.tripTotal) rows.push(`<li data-go="trip"><span class="d">${mdw(t.trips[t.trips.length - 1].date)}</span><span class="m">${esc(settings.tripLabel)}` +
+      `<div class="route">交通費精算書の合計（交通費タブで修正）</div></span><span class="r">${yen(t.tripTotal)}</span></li>`);
+    t.exps.forEach(r => rows.push(`<li data-exp="${esc(r['ID'])}"><span class="d">${mdw(r['日付'])}</span><span class="m">${esc(r['内容'])}` +
+      `<div class="route">${esc(r['支払先'])}${r['領収書'] ? '　領収書' + esc(r['領収書']) : ''}</div></span><span class="r">${yen(r['金額'])}</span></li>`));
+    $('expList').innerHTML = rows.join('') || '<li class="empty"><span class="m">まだありません</span></li>';
+    $('expTotal').textContent = yen(t.expTotal);
+    const n = t.exps.length + (t.tripTotal ? 1 : 0);
+    $('expRows').innerHTML = `精算書の行：${n} / 22 行` + (n > 22 ? ' <span class="bad">（入りきりません）</span>' : '');
+  }
+
+  function renderReport(t) {
+    const items = [];
+    const noOut = t.att.filter(r => r['区分'] === '出勤' && (!r['出勤'] || !r['退勤']));
+    const noKind = t.att.filter(r => !r['区分'] && (r['出勤'] || r['退勤']));
+    items.push([t.days ? '✅' : '⚠️', `出勤 ${t.days}日・実働 ${hm(t.min)}`, `目安 ${settings.goal}時間`]);
+    if (noOut.length) items.push(['⚠️', `時刻が抜けている日：${noOut.map(r => md(r['日付'])).join('、')}`, '出勤タブで日付を押して直してください']);
+    if (noKind.length) items.push(['⚠️', `区分がない日：${noKind.map(r => md(r['日付'])).join('、')}`, '「出勤」などを選んでください']);
+    items.push(['✅', `交通費 ${t.trips.length}回・${yen(t.tripTotal)}`, `精算書 ${t.legs}/15 行`]);
+    const nExp = t.exps.length + (t.tripTotal ? 1 : 0);
+    items.push(['✅', `立替 ${t.exps.length}件・合計 ${yen(t.expTotal)}（交通費を含む）`, `精算書 ${nExp}/22 行`]);
+    const noReceipt = t.exps.filter(r => !r['領収書']);
+    if (noReceipt.length) items.push(['⚠️', `領収書の有無が空：${noReceipt.map(r => esc(r['内容'])).join('、')}`, '']);
+    if (t.legs > 15 || nExp > 22) items.push(['❌', '精算書の行数を超えています', '同じ日の区間をまとめるなどしてください']);
+    if (queue.length) items.push(['⚠️', `まだ送れていない変更が ${queue.length} 件`, '電波のあるところで開き直してください']);
+    $('checkList').innerHTML = items.map(([m, a, b]) => `<li><b>${m}</b><div>${a}${b ? `<div class="muted">${b}</div>` : ''}</div></li>`).join('');
+
+    if (!$('rApply').dataset.month || $('rApply').dataset.month !== key(cur)) {
+      $('rApply').value = `${cur.y}-${pad(cur.m)}-20`; $('rApply').dataset.month = key(cur);
+    }
+    $('rLabel').value = settings.tripLabel; $('rPayee').value = settings.tripPayee;
+    $('makePdf').disabled = !settings.url || t.legs > 15 || nExp > 22;
+    const reps = server.reports.filter(r => String(r['月度']) === key(cur));
+    $('reportList').innerHTML = reps.length ? reps.slice().reverse().map(r =>
+      `<li><span class="m">${esc(r['作成日時'])}　実働 ${esc(r['実働'])}・${yen(r['立替合計'])}</span><span class="r"><a href="${esc(r['PDF'])}" target="_blank" rel="noopener">開く</a></span></li>`).join('')
+      : '<li class="empty"><span class="m">まだありません</span></li>';
+    $('sheetLinkWrap').hidden = !server.sheetUrl;
+    if (server.sheetUrl) $('sheetLink').href = server.sheetUrl;
+  }
+
+  // ---- タブ ----
+  function showTab(name) {
+    ['attend', 'trip', 'exp', 'report'].forEach(n => { $('tab-' + n).hidden = n !== name; });
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === name));
+    store.set('tab', name); window.scrollTo(0, 0);
+  }
+  document.querySelectorAll('nav.tabs button').forEach(b => b.addEventListener('click', () => showTab(b.dataset.tab)));
+  $('prevMonth').addEventListener('click', () => { cur = cur.m === 1 ? { y: cur.y - 1, m: 12 } : { y: cur.y, m: cur.m - 1 }; render(); });
+  $('nextMonth').addEventListener('click', () => { cur = cur.m === 12 ? { y: cur.y + 1, m: 1 } : { y: cur.y, m: cur.m + 1 }; render(); });
+
+  // ---- シート（下から出る入力欄） ----
+  const open = id => { $(id).hidden = false; };
+  const close = id => { $(id).hidden = true; };
+  document.querySelectorAll('.sheet').forEach(s => {
+    s.addEventListener('click', e => { if (e.target === s || e.target.closest('[data-close]')) s.hidden = true; });
+  });
+
+  // ---- 出勤 ----
+  const nowRounded = () => { const d = new Date(); const m = Math.round((d.getHours() * 60 + d.getMinutes()) / 5) * 5; return hm(Math.min(m, 23 * 60 + 55)); };   // 出勤簿と同じ 9:00 の書き方
+  function attendRow(date, patch) {
+    const base = Object.assign({ '日付': date, '区分': '', '出勤': '', '退勤': '', '休憩': '', '備考': '' }, attendMap()[date] || {}, patch);
+    const w = workMin(base);
+    base['実働'] = w != null ? hm(w) : '';
+    delete base['更新日時'];
+    return base;
+  }
+  $('clockIn').addEventListener('click', () => {
+    const d = ds(new Date()), t = nowRounded(), r = attendMap()[d] || {};
+    if (r['出勤'] && !confirm(`今日は ${r['出勤']} に出勤済みです。${t} に変えますか？`)) return;
+    commit({ action: 'attend', row: attendRow(d, { '区分': '出勤', '出勤': t }) }, `出勤 ${t} を入れました`);
+  });
+  $('clockOut').addEventListener('click', () => {
+    const d = ds(new Date()), t = nowRounded(), r = attendMap()[d] || {};
+    const patch = { '区分': r['区分'] || '出勤', '退勤': t };
+    // 6時間を超えたら休憩1時間を入れておく（あとで直せる）
+    if (!r['休憩'] && r['出勤'] && toMin(t) - toMin(r['出勤']) > 6 * 60) patch['休憩'] = '1:00';
+    commit({ action: 'attend', row: attendRow(d, patch) }, `退勤 ${t} を入れました` + (patch['休憩'] ? '（休憩1:00）' : ''));
+  });
+
+  let editDay = null;
+  function openDay(d) {
+    editDay = d;
+    const r = attendMap()[d] || {};
+    $('aTitle').innerHTML = mdw(d) + ' の出勤';
+    document.querySelectorAll('#aKind input').forEach(i => { i.checked = i.value === (r['区分'] || (r['出勤'] ? '出勤' : '')); });
+    if (!r['区分'] && !r['出勤']) document.querySelector('#aKind input[value="出勤"]').checked = true;
+    $('aIn').value = (r['出勤'] || '').padStart(r['出勤'] ? 5 : 0, '0');
+    $('aOut').value = (r['退勤'] || '').padStart(r['退勤'] ? 5 : 0, '0');
+    $('aBreak').value = r['休憩'] || '';
+    $('aNote').value = r['備考'] || '';
+    $('noteList').innerHTML = [...new Set(server.attend.map(x => x['備考']).filter(Boolean))].map(v => `<option value="${esc(v)}">`).join('');
+    showWork(); open('attendSheet');
+  }
+  function showWork() {
+    const w = workMin({ '出勤': $('aIn').value, '退勤': $('aOut').value, '休憩': $('aBreak').value });
+    $('aWork').textContent = w != null ? `実働 ${hm(w)}` : '';
+  }
+  ['aIn', 'aOut', 'aBreak'].forEach(id => $(id).addEventListener('input', showWork));
+  $('attendList').addEventListener('click', e => { const li = e.target.closest('li[data-day]'); if (li) openDay(li.dataset.day); });
+  $('aForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const kind = (document.querySelector('#aKind input:checked') || {}).value || '';
+    const strip0 = v => v.replace(/^0(\d:)/, '$1');   // 09:00 → 9:00（出勤簿と同じ書き方）
+    const row = attendRow(editDay, { '区分': kind, '出勤': kind === '出勤' || kind === '半休' ? strip0($('aIn').value) : '',
+      '退勤': kind === '出勤' || kind === '半休' ? strip0($('aOut').value) : '', '休憩': kind === '出勤' || kind === '半休' ? $('aBreak').value : '', '備考': $('aNote').value.trim() });
+    close('attendSheet');
+    commit({ action: 'attend', row }, `${md(editDay)} を保存しました`);
+  });
+
+  // ---- 交通費 ----
+  let editTrip = null;
+  function legHtml(l, i) {
+    return `<div class="leg" data-i="${i}"><div class="leg-no">区間 ${i + 1}</div>` +
+      `<button class="btn small x" type="button" data-rm="${i}" aria-label="この区間を消す">✕</button>` +
+      `<div class="two"><div><label>出発</label><input data-k="出発" list="stationList" value="${esc(l['出発'])}" autocomplete="off"></div>` +
+      `<div><label>到着</label><input data-k="到着" list="stationList" value="${esc(l['到着'])}" autocomplete="off"></div></div>` +
+      `<div class="two"><div><label>交通機関</label><input data-k="交通機関" list="meansList" value="${esc(l['交通機関'] || '電車')}" autocomplete="off"></div>` +
+      `<div><label>金額（円）</label><input data-k="金額" inputmode="numeric" value="${esc(l['金額'])}" autocomplete="off"></div></div></div>`;
+  }
+  function readLegs() {
+    return [...$('tLegs').querySelectorAll('.leg')].map(el => {
+      const o = {}; el.querySelectorAll('input').forEach(i => { o[i.dataset.k] = i.value.trim(); });
+      o['金額'] = Number(String(o['金額']).replace(/[^\d]/g, '')) || 0; return o;
+    });
+  }
+  function drawLegs(legs) {
+    $('tLegs').innerHTML = legs.map(legHtml).join('');
+    $('tSum').textContent = yen(legs.reduce((s, l) => s + (Number(l['金額']) || 0), 0));
+  }
+  $('tLegs').addEventListener('input', () => { $('tSum').textContent = yen(readLegs().reduce((s, l) => s + l['金額'], 0)); });
+  $('tLegs').addEventListener('click', e => {
+    const b = e.target.closest('[data-rm]'); if (!b) return;
+    const legs = readLegs(); legs.splice(Number(b.dataset.rm), 1); drawLegs(legs.length ? legs : [{}]);
+  });
+  $('tAddLeg').addEventListener('click', () => {
+    const legs = readLegs(), last = legs[legs.length - 1] || {};
+    legs.push({ '出発': last['到着'] || '', '交通機関': last['交通機関'] || '電車' }); drawLegs(legs);
+  });
+  $('tReturn').addEventListener('click', () => {
+    const legs = readLegs().filter(l => l['出発'] || l['到着']);
+    drawLegs(legs.concat(legs.slice().reverse().map(l => ({ '出発': l['到着'], '到着': l['出発'], '交通機関': l['交通機関'], '金額': l['金額'] }))));
+  });
+  // よく使う経路：これまでの交通費から、目的と区間が同じものをまとめる（新しい順に8つまで）
+  function presets() {
+    const seen = new Map();
+    tripGroups().slice().reverse().forEach(t => {
+      const sig = t.purpose + '|' + t.legs.map(l => l['出発'] + '>' + l['到着']).join('|');
+      if (!seen.has(sig)) seen.set(sig, t);
+    });
+    return [...seen.values()].slice(0, 8);
+  }
+  function openTrip(id) {
+    const t = id ? tripGroups().find(x => x.id === id) : null;
+    editTrip = t ? t.id : newId();
+    $('tTitle').textContent = t ? '交通費を直す' : '交通費を入れる';
+    $('tDate').value = toInput(t ? t.date : ds(new Date()));
+    $('tPurpose').value = t ? t.purpose : '';
+    drawLegs(t ? t.legs.map(l => Object.assign({}, l)) : [{ '交通機関': '電車' }]);
+    $('tDelete').hidden = !t;
+    const ps = presets();
+    $('tPresetWrap').hidden = !!t || !ps.length;
+    $('tPresets').innerHTML = ps.map((p, i) => `<button class="btn small" type="button" data-preset="${i}">${esc(p.purpose)}（${yen(tripSum(p))}）</button>`).join('');
+    $('tPresets').onclick = e => {
+      const b = e.target.closest('[data-preset]'); if (!b) return;
+      const p = ps[Number(b.dataset.preset)];
+      $('tPurpose').value = p.purpose;
+      drawLegs(p.legs.map(l => ({ '出発': l['出発'], '到着': l['到着'], '交通機関': l['交通機関'], '金額': l['金額'] })));
+    };
+    const words = new Set(); server.trips.forEach(l => { words.add(l['出発']); words.add(l['到着']); });
+    $('stationList').innerHTML = [...words].filter(Boolean).map(v => `<option value="${esc(v)}">`).join('');
+    $('purposeList').innerHTML = [...new Set(server.trips.map(l => l['目的']))].filter(Boolean).map(v => `<option value="${esc(v)}">`).join('');
+    open('tripSheet');
+  }
+  $('addTrip').addEventListener('click', () => openTrip(null));
+  $('tripList').addEventListener('click', e => { const li = e.target.closest('li[data-trip]'); if (li) openTrip(li.dataset.trip); });
+  $('tForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const date = fromInput($('tDate').value), purpose = $('tPurpose').value.trim();
+    const legs = readLegs().filter(l => l['出発'] || l['到着'] || l['金額'])
+      .map(l => ({ 'ID': newId(), '日付': date, '目的': purpose, '出発': l['出発'], '到着': l['到着'], '交通機関': l['交通機関'], '金額': l['金額'] }));
+    if (!legs.length) { toast('区間を入れてください'); return; }
+    close('tripSheet');
+    commit({ action: 'trip', tripId: editTrip, legs }, `${md(date)} の交通費 ${yen(legs.reduce((s, l) => s + l['金額'], 0))} を保存しました`);
+  });
+  $('tDelete').addEventListener('click', () => {
+    if (!confirm('この日の交通費を消しますか？')) return;
+    close('tripSheet');
+    commit({ action: 'trip', tripId: editTrip, legs: [] }, '交通費を消しました');
+  });
+
+  // ---- 立替 ----
+  let editExp = null;
+  function openExp(id) {
+    const r = id ? server.expenses.find(x => x['ID'] === id) : null;
+    editExp = r ? r['ID'] : newId();
+    $('eTitle').textContent = r ? '立替を直す' : '立替を入れる';
+    $('eDate').value = toInput(r ? r['日付'] : ds(new Date()));
+    $('eAmount').value = r ? r['金額'] : '';
+    $('eWhat').value = r ? r['内容'] : '';
+    $('ePayee').value = r ? r['支払先'] : '';
+    document.querySelectorAll('input[name="receipt"]').forEach(i => { i.checked = i.value === (r ? r['領収書'] : '有'); });
+    $('eDelete').hidden = !r;
+    const opts = k => [...new Set(server.expenses.map(x => x[k]))].filter(Boolean).map(v => `<option value="${esc(v)}">`).join('');
+    $('whatList').innerHTML = opts('内容'); $('payeeList').innerHTML = opts('支払先');
+    open('expSheet');
+  }
+  // 内容を前と同じにしたら、支払先も前と同じにする
+  $('eWhat').addEventListener('change', () => {
+    const prev = server.expenses.slice().reverse().find(x => x['内容'] === $('eWhat').value.trim());
+    if (prev && !$('ePayee').value) $('ePayee').value = prev['支払先'];
+  });
+  $('addExp').addEventListener('click', () => openExp(null));
+  $('expList').addEventListener('click', e => {
+    const li = e.target.closest('li[data-exp], li[data-go]'); if (!li) return;
+    if (li.dataset.go) showTab('trip'); else openExp(li.dataset.exp);
+  });
+  $('eForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const amount = Number($('eAmount').value.replace(/[^\d]/g, ''));
+    if (!amount) { toast('金額を入れてください'); return; }
+    const row = { 'ID': editExp, '日付': fromInput($('eDate').value), '内容': $('eWhat').value.trim(), '支払先': $('ePayee').value.trim(),
+      '領収書': (document.querySelector('input[name="receipt"]:checked') || {}).value || '', '金額': amount };
+    close('expSheet');
+    commit({ action: 'expense', row }, `${row['内容']} ${yen(amount)} を保存しました`);
+  });
+  $('eDelete').addEventListener('click', () => {
+    if (!confirm('この立替を消しますか？')) return;
+    close('expSheet');
+    commit({ action: 'expense', row: { 'ID': editExp }, remove: true }, '立替を消しました');
+  });
+
+  // ---- 報告 ----
+  $('rLabel').addEventListener('change', () => { settings.tripLabel = $('rLabel').value.trim(); store.set('tripLabel', settings.tripLabel); render(); });
+  $('rPayee').addEventListener('change', () => { settings.tripPayee = $('rPayee').value.trim(); store.set('tripPayee', settings.tripPayee); });
+  $('makePdf').addEventListener('click', async () => {
+    await flush();
+    if (queue.length) { toast('まだ送れていない変更があります。電波のあるところでもう一度押してください'); return; }
+    const btn = $('makePdf'); btn.disabled = true; btn.textContent = 'PDFを作っています…（20秒ほど）';
+    $('pdfResult').innerHTML = '';
+    try {
+      const res = await fetch(settings.url, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'report', month: key(cur), applyDate: fromInput($('rApply').value), tripLabel: settings.tripLabel, tripPayee: settings.tripPayee }) });
+      const j = await res.json();
+      if (!j.ok) throw new Error(j.error);
+      $('pdfResult').innerHTML = `✅ <b>${esc(j.name)}</b> を保存しました。<br><a href="${esc(j.pdfUrl)}" target="_blank" rel="noopener">PDFを開く</a>`;
+      pull();
+    } catch (e) {
+      $('pdfResult').innerHTML = `<span class="bad">作れませんでした：${esc(e.message)}</span>`;
+    } finally {
+      btn.textContent = 'PDFを作ってフォルダに保存'; render();
+    }
+  });
+  document.addEventListener('click', e => { if (e.target.id === 'goReport') { cur = dueMo; showTab('report'); render(); } });
+
+  // ---- 設定 ----
+  $('openSettings').addEventListener('click', () => { $('sUrl').value = settings.url; $('sGoal').value = settings.goal; open('settingsSheet'); });
+  $('sSave').addEventListener('click', () => {
+    const url = $('sUrl').value.trim();
+    if (url && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(url)) { toast('URLの形が違います（…/exec で終わるもの）'); return; }
+    const changed = url !== settings.url;
+    settings.url = url; settings.goal = Number($('sGoal').value) || 20;
+    store.set('url', url); store.set('goal', settings.goal);
+    close('settingsSheet'); toast('保存しました');
+    if (changed && url) pull();
+    render();
+  });
+
+  window.addEventListener('online', () => flush().then(pull));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) flush().then(pull); });
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+
+  showTab(store.get('tab', 'attend'));
+  render();
+  flush().then(pull);
+})();
+</script>
+</body>
+</html>
