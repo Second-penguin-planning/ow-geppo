@@ -222,7 +222,7 @@ function makeReport_(req) {
   let blob;
   try {
     const url = `https://docs.google.com/spreadsheets/d/${ss.getId()}/export?format=pdf&size=A4&portrait=true` +
-      '&fitw=true&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&fzr=false' +
+      '&scale=4&gridlines=false&printtitle=false&sheetnames=false&pagenum=UNDEFINED&fzr=false' +
       '&top_margin=0.6&bottom_margin=0.6&left_margin=0.6&right_margin=0.6&horizontal_alignment=CENTER';
     const res = UrlFetchApp.fetch(url, { headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() } });
     blob = res.getBlob();
