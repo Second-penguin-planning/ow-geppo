@@ -6,6 +6,7 @@
  * 記録のシート（なければ自動で作る）
  *   出勤データ：1日1行　　交通費データ：1区間1行（同じ旅IDで1回の移動）　　立替データ：1件1行
  *   報告履歴：PDFを作るたびに1行
+ * 領収書の写真は、このスプレッドシートと同じフォルダの「領収書」フォルダに入る
  * 報告のシート（ひな形・PDFに出す）
  *   出勤簿／立替経費精算書／交通費精算書
  *
@@ -14,7 +15,7 @@
 const TZ = 'Asia/Tokyo';
 const ATT = { name: '出勤データ', headers: ['日付', '区分', '出勤', '退勤', '休憩', '実働', '備考', '更新日時'] };
 const TRIP = { name: '交通費データ', headers: ['ID', '旅ID', '日付', '目的', '出発', '到着', '交通機関', '金額', '順番'] };
-const EXP = { name: '立替データ', headers: ['ID', '日付', '内容', '支払先', '領収書', '金額'] };
+const EXP = { name: '立替データ', headers: ['ID', '日付', '内容', '支払先', '領収書', '金額', '写真'] };
 const REP = { name: '報告履歴', headers: ['月度', '作成日時', '申請日', '出勤日数', '実働', '立替合計', 'PDF'] };
 const DATA_SHEETS = [ATT, TRIP, EXP, REP];
 const SHEET_ATT = '出勤簿';
@@ -29,6 +30,9 @@ function sheetOf_(def) {
     sheet = ss.insertSheet(def.name);
     sheet.getRange(1, 1, 1, def.headers.length).setValues([def.headers]).setFontWeight('bold');
     sheet.setFrozenRows(1);
+  } else if (sheet.getLastColumn() < def.headers.length) {
+    // あとから足した列の見出しを入れる
+    sheet.getRange(1, 1, 1, def.headers.length).setValues([def.headers]).setFontWeight('bold');
   }
   return sheet;
 }
@@ -83,6 +87,15 @@ function remove_(def, key, val) {
 }
 
 function doPost(e) {
+  // 領収書の読み取りは時間がかかるので、記録の書き込みとは別に（ロックの外で）行う
+  try {
+    const req = JSON.parse(e.postData.contents);
+    if (req.action === 'receipt') return json_(Object.assign({ ok: true }, readReceipt_(req)));
+    if (req.action === 'receiptDiscard') { discardReceipt_(req.photoId); return json_({ ok: true }); }
+  } catch (err) {
+    return json_({ ok: false, error: String(err) });
+  }
+
   const lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
@@ -108,7 +121,7 @@ function doPost(e) {
 
     if (req.action === 'expense') {
       if (req.remove) remove_(EXP, 'ID', req.row['ID']);
-      else upsert_(EXP, 'ID', req.row);
+      else { upsert_(EXP, 'ID', req.row); nameReceipt_(req.row); }
       return json_({ ok: true });
     }
 
@@ -242,6 +255,75 @@ function makeReport_(req) {
   sheetOf_(REP).appendRow([cell_(req.month, '月度'), cell_(Utilities.formatDate(new Date(), TZ, 'yyyy/MM/dd HH:mm'), '月度'),
     cell_(applied, '日付'), days, cell_(work, '実働'), expTotal, file.getUrl()]);
   return { pdfUrl: file.getUrl(), name, days, work, expTotal, tripTotal };
+}
+
+// ---- 領収書の写真 ----
+
+function receiptFolder_() {
+  const parent = DriveApp.getFileById(SpreadsheetApp.getActiveSpreadsheet().getId()).getParents().next();
+  const it = parent.getFoldersByName('領収書');
+  return it.hasNext() ? it.next() : parent.createFolder('領収書');
+}
+
+function inReceiptFolder_(file) {
+  const id = receiptFolder_().getId();
+  const ps = file.getParents();
+  while (ps.hasNext()) if (ps.next().getId() === id) return true;
+  return false;
+}
+
+// 写真を「領収書」フォルダに保存し、Google ドキュメントに変える（Drive の文字読み取り）→ 文字を返す。
+// 日付・金額・支払先の取り出しはページ側で行う（ここを直さずに直せるように）
+function readReceipt_(req) {
+  const mime = req.mime || 'image/jpeg';
+  const stamp = Utilities.formatDate(new Date(), TZ, 'yyMMdd_HHmmss');
+  const blob = Utilities.newBlob(Utilities.base64Decode(req.image), mime, `${stamp}_領収書.jpg`);
+  const photo = receiptFolder_().createFile(blob);
+  const auth = { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() };
+  const out = { text: '', photoUrl: photo.getUrl(), photoId: photo.getId() };
+  // 文字が読めなくても写真は返す（手で入れて、写真付きで保存できるように）
+  try {
+    const res = UrlFetchApp.fetch(`https://www.googleapis.com/drive/v3/files/${photo.getId()}/copy?ocrLanguage=ja`, {
+      method: 'post', contentType: 'application/json', headers: auth, muteHttpExceptions: true,
+      payload: JSON.stringify({ name: stamp + '_読み取り', mimeType: 'application/vnd.google-apps.document' }),
+    });
+    if (res.getResponseCode() !== 200) {
+      let why = '';
+      try { why = JSON.parse(res.getContentText()).error.message; } catch (e) {}
+      throw new Error('文字の読み取りに失敗しました（' + res.getResponseCode() + '）' + why);
+    }
+    const docId = JSON.parse(res.getContentText()).id;
+    try {
+      out.text = UrlFetchApp.fetch(`https://www.googleapis.com/drive/v3/files/${docId}/export?mimeType=text/plain`, { headers: auth })
+        .getContentText('UTF-8');
+    } finally {
+      DriveApp.getFileById(docId).setTrashed(true);   // 読み取り用のドキュメントは要らない
+    }
+  } catch (err) {
+    out.ocrError = String(err.message || err);
+  }
+  return out;
+}
+
+// 写真から入れかけて「やめる」を押したとき。「領収書」フォルダの写真だけゴミ箱へ
+function discardReceipt_(photoId) {
+  if (!photoId) return;
+  const file = DriveApp.getFileById(photoId);
+  if (inReceiptFolder_(file)) file.setTrashed(true);
+}
+
+// 立替を保存したら、写真の名前を「日付_支払先_金額円.jpg」にそろえる
+function nameReceipt_(row) {
+  const m = String(row['写真'] || '').match(/[-\w]{25,}/);
+  if (!m) return;
+  try {
+    const file = DriveApp.getFileById(m[0]);
+    if (!inReceiptFolder_(file)) return;
+    const d = ymd_(row['日付']);
+    const day = d ? String(d[0]).slice(2) + String(d[1]).padStart(2, '0') + String(d[2]).padStart(2, '0') : '';
+    const who = String(row['支払先'] || row['内容'] || '').replace(/[\\/:*?"<>|]/g, '').slice(0, 30);
+    file.setName(`${day}_${who}_${Number(row['金額']) || 0}円.jpg`);
+  } catch (e) {}  // 名前を変えられなくても記録は残す
 }
 
 // 最初に一度、エディタでこれを実行すると許可画面が出る（Drive と外部への接続の許可）
