@@ -1,5 +1,5 @@
 // 電波がないときも画面だけは開けるようにする（記録の送信はページ側で後から行う）
-const CACHE = 'ow-geppo-v1';
+const CACHE = 'ow-geppo-v2';
 const FILES = ['./', 'index.html', 'manifest.json', 'icon.svg'];
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));

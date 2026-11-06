@@ -273,6 +273,7 @@ function inReceiptFolder_(file) {
 }
 
 // 写真を「領収書」フォルダに保存し、Google ドキュメントに変える（Drive の文字読み取り）→ 文字を返す。
+// 記録は共有ドライブにあるので、Drive API には supportsAllDrives=true を付ける（ないと「ファイルが見つからない」になる）
 // 日付・金額・支払先の取り出しはページ側で行う（ここを直さずに直せるように）
 function readReceipt_(req) {
   const mime = req.mime || 'image/jpeg';
@@ -283,7 +284,7 @@ function readReceipt_(req) {
   const out = { text: '', photoUrl: photo.getUrl(), photoId: photo.getId() };
   // 文字が読めなくても写真は返す（手で入れて、写真付きで保存できるように）
   try {
-    const res = UrlFetchApp.fetch(`https://www.googleapis.com/drive/v3/files/${photo.getId()}/copy?ocrLanguage=ja`, {
+    const res = UrlFetchApp.fetch(`https://www.googleapis.com/drive/v3/files/${photo.getId()}/copy?ocrLanguage=ja&supportsAllDrives=true`, {
       method: 'post', contentType: 'application/json', headers: auth, muteHttpExceptions: true,
       payload: JSON.stringify({ name: stamp + '_読み取り', mimeType: 'application/vnd.google-apps.document' }),
     });
