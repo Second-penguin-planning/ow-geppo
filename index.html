@@ -750,8 +750,10 @@
     }
 
     // 支払先：会社・店らしい行（上の方を優先）。なければ一番上の行
-    const SKIP = /様|^No|^\d|TEL|電話|〒|登録番号|^T\d|担当|レジ|日付|但|として|¥|円|^[\s\d\p{P}\p{S}]+$/iu;
-    const cand = lines.map(l => l.replace(/領\s*収\s*[書証]|レシート|receipt/gi, '').trim())
+    const SKIP = /様|^No|^\d|TEL|電話|〒|登録番号|^T\d|担当|レジ|日付|但|として|¥|円|問い?合|センター|ありがとう|^[\s\d\p{P}\p{S}]+$/iu;
+    const cand = lines.map(l => l.replace(/領\s*収\s*[書証]|レシート|receipt/gi, '').trim()
+        .replace(/^[\d\p{P}\p{S}]{1,2}\s+(?=\S{2})/u, ''))   // ロゴが「4」などと読まれて行の頭に付いたもの
+
       .filter(l => l.length >= 2 && !SKIP.test(l) && !/[都道府県市区町村]\S*\d/.test(l));
     const SHOP = /株式会社|有限会社|\(株\)|㈱|店|堂|屋|駅|ホテル|HOTEL|INN|タクシー|交通|郵便|局|モバイル|カメラ|マート|ストア|鉄道|JR|高速|道路|NEXCO|パーキング|駐車場|ETC|ガソリン|石油|セブン|ローソン|ファミリーマート/i;
     const shop = cand.find(l => SHOP.test(l));
